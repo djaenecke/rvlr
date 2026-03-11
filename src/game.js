@@ -9,9 +9,10 @@ export class Game {
     this.images = []
     this.currentImage = null
     this.tiles = []
+    this.grid = null  // 2D grid for edge matching
 
     this.tileSize = 80
-    this.tileGap = -10  // Overlap
+    this.tabSize = 16  // Size of jigsaw tab
     this.tileColors = ['#e63946', '#f4a261', '#2a9d8f', '#264653', '#e9c46a', '#8338ec']
 
     this.onTilesChanged = null
@@ -79,18 +80,39 @@ export class Game {
     this.tiles = []
 
     const imgRect = this.getImageRect()
-    const effectiveSize = this.tileSize + this.tileGap
+    const cols = Math.ceil(imgRect.width / this.tileSize)
+    const rows = Math.ceil(imgRect.height / this.tileSize)
 
-    const cols = Math.ceil((imgRect.width - this.tileGap) / effectiveSize)
-    const rows = Math.ceil((imgRect.height - this.tileGap) / effectiveSize)
+    // Create grid to track edge configurations
+    // edges: 0 = flat, 1 = tab out, -1 = blank in
+    this.grid = []
 
     for (let row = 0; row < rows; row++) {
+      this.grid[row] = []
       for (let col = 0; col < cols; col++) {
-        const x = imgRect.x + col * effectiveSize
-        const y = imgRect.y + row * effectiveSize
+        const x = imgRect.x + col * this.tileSize
+        const y = imgRect.y + row * this.tileSize
         const color = this.tileColors[Math.floor(Math.random() * this.tileColors.length)]
 
-        this.tiles.push({ x, y, width: this.tileSize, height: this.tileSize, color })
+        // Determine edges: top, right, bottom, left
+        const edges = {
+          top: row === 0 ? 0 : -this.grid[row - 1][col].edges.bottom,
+          right: col === cols - 1 ? 0 : (Math.random() > 0.5 ? 1 : -1),
+          bottom: row === rows - 1 ? 0 : (Math.random() > 0.5 ? 1 : -1),
+          left: col === 0 ? 0 : -this.grid[row][col - 1].edges.right
+        }
+
+        const tile = {
+          x, y,
+          row, col,
+          width: this.tileSize,
+          height: this.tileSize,
+          color,
+          edges
+        }
+
+        this.grid[row][col] = tile
+        this.tiles.push(tile)
       }
     }
 
@@ -157,14 +179,115 @@ export class Game {
 
     // Draw tiles
     for (const tile of this.tiles) {
-      this.ctx.fillStyle = tile.color
-      this.ctx.fillRect(tile.x, tile.y, tile.width, tile.height)
-
-      // Subtle border
-      this.ctx.strokeStyle = 'rgba(0,0,0,0.2)'
-      this.ctx.lineWidth = 1
-      this.ctx.strokeRect(tile.x, tile.y, tile.width, tile.height)
+      this.drawJigsawTile(tile)
     }
+  }
+
+  drawJigsawTile(tile) {
+    const ctx = this.ctx
+    const { x, y, width, height, edges, color } = tile
+    const tab = this.tabSize
+
+    ctx.save()
+    ctx.beginPath()
+
+    // Start at top-left
+    ctx.moveTo(x, y)
+
+    // Top edge
+    this.drawEdge(ctx, x, y, width, 0, edges.top, tab)
+
+    // Right edge
+    this.drawEdge(ctx, x + width, y, height, 1, edges.right, tab)
+
+    // Bottom edge (reverse)
+    this.drawEdge(ctx, x + width, y + height, width, 2, edges.bottom, tab)
+
+    // Left edge (reverse)
+    this.drawEdge(ctx, x, y + height, height, 3, edges.left, tab)
+
+    ctx.closePath()
+
+    // Fill with gradient for 3D effect
+    const gradient = ctx.createLinearGradient(x, y, x + width, y + height)
+    gradient.addColorStop(0, this.lightenColor(color, 20))
+    gradient.addColorStop(0.5, color)
+    gradient.addColorStop(1, this.darkenColor(color, 20))
+    ctx.fillStyle = gradient
+    ctx.fill()
+
+    // Border
+    ctx.strokeStyle = this.darkenColor(color, 40)
+    ctx.lineWidth = 1.5
+    ctx.stroke()
+
+    // Inner highlight
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)'
+    ctx.lineWidth = 1
+    ctx.stroke()
+
+    ctx.restore()
+  }
+
+  drawEdge(ctx, startX, startY, length, direction, edgeType, tab) {
+    // direction: 0=right, 1=down, 2=left, 3=up
+    const dx = [1, 0, -1, 0][direction]
+    const dy = [0, 1, 0, -1][direction]
+    // perpendicular direction for tab
+    const px = [0, -1, 0, 1][direction]
+    const py = [1, 0, -1, 0][direction]
+
+    const seg = length / 3
+    const tabDepth = tab * edgeType
+
+    if (edgeType === 0) {
+      // Flat edge
+      ctx.lineTo(startX + dx * length, startY + dy * length)
+    } else {
+      // First segment
+      ctx.lineTo(startX + dx * seg, startY + dy * seg)
+
+      // Tab/blank curve using bezier
+      const midX = startX + dx * (length / 2)
+      const midY = startY + dy * (length / 2)
+
+      // Control points for smooth curve
+      const cp1x = startX + dx * seg + px * tabDepth * 0.2
+      const cp1y = startY + dy * seg + py * tabDepth * 0.2
+      const cp2x = midX - dx * (seg * 0.3) + px * tabDepth
+      const cp2y = midY - dy * (seg * 0.3) + py * tabDepth
+
+      ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, midX + px * tabDepth, midY + py * tabDepth)
+
+      // Second half of curve
+      const cp3x = midX + dx * (seg * 0.3) + px * tabDepth
+      const cp3y = midY + dy * (seg * 0.3) + py * tabDepth
+      const cp4x = startX + dx * (seg * 2) + px * tabDepth * 0.2
+      const cp4y = startY + dy * (seg * 2) + py * tabDepth * 0.2
+
+      ctx.bezierCurveTo(cp3x, cp3y, cp4x, cp4y, startX + dx * (seg * 2), startY + dy * (seg * 2))
+
+      // Final segment
+      ctx.lineTo(startX + dx * length, startY + dy * length)
+    }
+  }
+
+  lightenColor(color, percent) {
+    const num = parseInt(color.replace('#', ''), 16)
+    const amt = Math.round(2.55 * percent)
+    const R = Math.min(255, (num >> 16) + amt)
+    const G = Math.min(255, ((num >> 8) & 0x00FF) + amt)
+    const B = Math.min(255, (num & 0x0000FF) + amt)
+    return `#${(1 << 24 | R << 16 | G << 8 | B).toString(16).slice(1)}`
+  }
+
+  darkenColor(color, percent) {
+    const num = parseInt(color.replace('#', ''), 16)
+    const amt = Math.round(2.55 * percent)
+    const R = Math.max(0, (num >> 16) - amt)
+    const G = Math.max(0, ((num >> 8) & 0x00FF) - amt)
+    const B = Math.max(0, (num & 0x0000FF) - amt)
+    return `#${(1 << 24 | R << 16 | G << 8 | B).toString(16).slice(1)}`
   }
 
   get remainingImages() {
