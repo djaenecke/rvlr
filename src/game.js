@@ -85,6 +85,12 @@ export class Game {
     const cols = Math.ceil(imgRect.width / this.tileSize)
     const rows = Math.ceil(imgRect.height / this.tileSize)
 
+    // Center tiles over image (equal overlap on all sides)
+    const totalTileWidth = cols * this.tileSize
+    const totalTileHeight = rows * this.tileSize
+    const offsetX = imgRect.x - (totalTileWidth - imgRect.width) / 2
+    const offsetY = imgRect.y - (totalTileHeight - imgRect.height) / 2
+
     // Create grid to track edge configurations
     // edges: 0 = flat, 1 = tab out, -1 = blank in
     this.grid = []
@@ -92,8 +98,8 @@ export class Game {
     for (let row = 0; row < rows; row++) {
       this.grid[row] = []
       for (let col = 0; col < cols; col++) {
-        const x = imgRect.x + col * this.tileSize
-        const y = imgRect.y + row * this.tileSize
+        const x = offsetX + col * this.tileSize
+        const y = offsetY + row * this.tileSize
         const color = this.tileColors[Math.floor(Math.random() * this.tileColors.length)]
 
         // Determine edges: top, right, bottom, left
