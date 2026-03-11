@@ -1,36 +1,145 @@
 import './style.css'
 import { Game } from './game.js'
 
+// Elements - Setup
+const setupScreen = document.getElementById('setup')
+const fileInput = document.getElementById('file-input')
+const fileCount = document.getElementById('file-count')
+const urlInput = document.getElementById('url-input')
+const btnAddUrl = document.getElementById('btn-add-url')
+const urlList = document.getElementById('url-list')
+const tileSizeButtons = document.querySelectorAll('.tile-size')
+const btnStart = document.getElementById('btn-start')
+
+// Elements - Game
+const appScreen = document.getElementById('app')
 const canvas = document.getElementById('game')
 const btnNext = document.getElementById('btn-next')
 const btnClear = document.getElementById('btn-clear')
+const btnBack = document.getElementById('btn-back')
 const counter = document.getElementById('counter')
+
+// State
+let selectedFiles = []
+let imageUrls = []
+let tileSize = 80
 
 const game = new Game(canvas)
 
-// Sample images - replace with your own
-const sampleImages = [
-  'images/sample-1.jpg',
-  'images/sample-2.jpg',
-  'images/sample-3.jpg'
-]
+// Setup: File selection
+fileInput.addEventListener('change', (e) => {
+  selectedFiles = Array.from(e.target.files)
+  updateFileCount()
+  updateStartButton()
+})
 
+function updateFileCount() {
+  if (selectedFiles.length > 0) {
+    fileCount.textContent = `${selectedFiles.length} image${selectedFiles.length > 1 ? 's' : ''} selected`
+  } else {
+    fileCount.textContent = ''
+  }
+}
+
+// Setup: URL input
+btnAddUrl.addEventListener('click', addUrl)
+urlInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') addUrl()
+})
+
+function addUrl() {
+  const url = urlInput.value.trim()
+  if (url && isValidUrl(url)) {
+    imageUrls.push(url)
+    urlInput.value = ''
+    renderUrlList()
+    updateStartButton()
+  }
+}
+
+function isValidUrl(string) {
+  try {
+    new URL(string)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function renderUrlList() {
+  urlList.innerHTML = imageUrls.map((url, i) => `
+    <div class="url-item">
+      <span>${truncateUrl(url)}</span>
+      <button data-index="${i}">X</button>
+    </div>
+  `).join('')
+
+  urlList.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      imageUrls.splice(parseInt(btn.dataset.index), 1)
+      renderUrlList()
+      updateStartButton()
+    })
+  })
+}
+
+function truncateUrl(url) {
+  return url.length > 40 ? url.substring(0, 37) + '...' : url
+}
+
+// Setup: Tile size
+tileSizeButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    tileSizeButtons.forEach(b => b.classList.remove('active'))
+    btn.classList.add('active')
+    tileSize = parseInt(btn.dataset.size)
+  })
+})
+
+// Setup: Start button
+function updateStartButton() {
+  btnStart.disabled = selectedFiles.length === 0 && imageUrls.length === 0
+}
+
+btnStart.addEventListener('click', startGame)
+
+async function startGame() {
+  // Build image list
+  const imageSources = []
+
+  // Add file URLs (object URLs)
+  for (const file of selectedFiles) {
+    imageSources.push(URL.createObjectURL(file))
+  }
+
+  // Add remote URLs
+  imageSources.push(...imageUrls)
+
+  if (imageSources.length === 0) return
+
+  // Configure game
+  game.setTileSize(tileSize)
+
+  // Load images
+  const loaded = await game.loadImages(imageSources)
+
+  if (loaded > 0) {
+    setupScreen.classList.add('hidden')
+    appScreen.classList.remove('hidden')
+    game.setupCanvas()
+    game.nextImage()
+    updateNextButton()
+  } else {
+    alert('Failed to load images')
+  }
+}
+
+// Game callbacks
 game.onTilesChanged = (count) => {
   if (count > 0) {
     counter.textContent = `${count} tiles`
   } else {
     counter.textContent = ''
-  }
-}
-
-async function init() {
-  const loaded = await game.loadImages(sampleImages)
-
-  if (loaded > 0) {
-    game.nextImage()
-    updateNextButton()
-  } else {
-    counter.textContent = 'No images loaded'
   }
 }
 
@@ -40,7 +149,7 @@ function updateNextButton() {
   btnNext.disabled = remaining === 0 && game.remainingTiles === 0
 }
 
-// Tap on canvas removes a random tile
+// Game controls
 canvas.addEventListener('click', () => {
   if (game.remainingTiles > 0) {
     game.dropTile()
@@ -66,4 +175,14 @@ btnClear.addEventListener('click', () => {
   game.clear()
 })
 
-init()
+btnBack.addEventListener('click', () => {
+  // Reset and go back to setup
+  appScreen.classList.add('hidden')
+  setupScreen.classList.remove('hidden')
+  selectedFiles = []
+  imageUrls = []
+  fileInput.value = ''
+  updateFileCount()
+  renderUrlList()
+  updateStartButton()
+})

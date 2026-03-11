@@ -11,11 +11,45 @@
   <title>RVLR</title>
 </head>
 <body>
-  <div id="app">
+  <!-- Setup Screen -->
+  <div id="setup">
+    <h1>RVLR</h1>
+
+    <div class="setup-section">
+      <label>Select Images</label>
+      <input type="file" id="file-input" accept="image/*" multiple>
+      <label for="file-input" class="file-label">Choose from Gallery</label>
+      <div id="file-count"></div>
+    </div>
+
+    <div class="setup-section">
+      <label>Or Add Image URLs</label>
+      <div class="url-input-row">
+        <input type="url" id="url-input" placeholder="https://...">
+        <button id="btn-add-url">Add</button>
+      </div>
+      <div id="url-list"></div>
+    </div>
+
+    <div class="setup-section">
+      <label>Tile Size</label>
+      <div class="tile-size-options">
+        <button class="tile-size" data-size="60">Small</button>
+        <button class="tile-size active" data-size="80">Medium</button>
+        <button class="tile-size" data-size="120">Large</button>
+      </div>
+    </div>
+
+    <button id="btn-start" disabled>Start Game</button>
+  </div>
+
+  <!-- Game Screen -->
+  <div id="app" class="hidden">
     <canvas id="game"></canvas>
     <div id="controls">
       <button id="btn-next">Next</button>
       <button id="btn-clear">Reveal</button>
+      <button id="btn-back">New Game</button>
     </div>
     <div id="counter"></div>
   </div>

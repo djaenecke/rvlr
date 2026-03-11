@@ -13,7 +13,7 @@ export class Game {
     this.grid = null  // 2D grid for edge matching
 
     this.tileSize = 80
-    this.tabSize = 16  // Size of jigsaw tab
+    this.tabSize = 16  // Scales with tile size
     this.tileColors = ['#e63946', '#f4a261', '#2a9d8f', '#264653', '#e9c46a', '#8338ec']
 
     this.onTilesChanged = null
@@ -37,6 +37,11 @@ export class Game {
     if (this.currentImage) {
       this.render()
     }
+  }
+
+  setTileSize(size) {
+    this.tileSize = size
+    this.tabSize = Math.round(size * 0.2)  // Tab proportional to tile
   }
 
   async loadImages(urls) {
