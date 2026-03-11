@@ -111,6 +111,14 @@ btnRefresh.addEventListener('click', () => {
 
 // PWA Install prompt
 let deferredPrompt = null
+const iosInstall = document.getElementById('ios-install')
+
+// Detect iOS Safari (not in standalone mode)
+const isIos = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase())
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone
+if (isIos && !isStandalone) {
+  iosInstall.classList.remove('hidden')
+}
 
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault()
