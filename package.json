@@ -1,0 +1,26 @@
+{
+  "name": "rvlr",
+  "version": "1.0.0",
+  "description": "A picture reveal game as a Progressive Web App.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/djaenecke/rvlr.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/djaenecke/rvlr/issues"
+  },
+  "homepage": "https://github.com/djaenecke/rvlr#readme",
+  "devDependencies": {
+    "vite": "^7.3.1",
+    "vite-plugin-pwa": "^1.2.0"
+  }
+}
