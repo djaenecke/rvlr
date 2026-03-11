@@ -10,6 +10,7 @@ const btnAddUrl = document.getElementById('btn-add-url')
 const urlList = document.getElementById('url-list')
 const tileSizeButtons = document.querySelectorAll('.tile-size')
 const btnStart = document.getElementById('btn-start')
+const btnRefresh = document.getElementById('btn-refresh')
 
 // Elements - Game
 const appScreen = document.getElementById('app')
@@ -102,6 +103,10 @@ function updateStartButton() {
 }
 
 btnStart.addEventListener('click', startGame)
+
+btnRefresh.addEventListener('click', () => {
+  location.reload(true)
+})
 
 async function startGame() {
   // Build image list

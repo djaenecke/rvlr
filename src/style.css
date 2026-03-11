@@ -231,6 +231,23 @@ body {
   background: #238b7e;
 }
 
+#btn-refresh {
+  width: 100%;
+  max-width: 400px;
+  padding: 0.75rem;
+  margin-top: 2rem;
+  background: transparent;
+  border: 1px solid #4a4a6a;
+  border-radius: 8px;
+  color: #8a8aaa;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+#btn-refresh:active {
+  background: #2a2a4a;
+}
+
 .hidden {
   display: none !important;
 }
