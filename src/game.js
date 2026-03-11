@@ -9,6 +9,7 @@ export class Game {
     this.images = []
     this.currentImage = null
     this.tiles = []
+    this.animatingTiles = []  // Tiles being animated out
     this.grid = null  // 2D grid for edge matching
 
     this.tileSize = 80
@@ -16,6 +17,7 @@ export class Game {
     this.tileColors = ['#e63946', '#f4a261', '#2a9d8f', '#264653', '#e9c46a', '#8338ec']
 
     this.onTilesChanged = null
+    this.animationId = null
 
     this.setupCanvas()
     window.addEventListener('resize', () => this.setupCanvas())
@@ -149,17 +151,73 @@ export class Game {
     }
 
     const idx = Math.floor(Math.random() * this.tiles.length)
-    this.tiles.splice(idx, 1)
-    this.render()
-    this.notifyTilesChanged()
+    const tile = this.tiles.splice(idx, 1)[0]
 
+    // Start animation
+    tile.animation = {
+      progress: 0,
+      rotation: (Math.random() - 0.5) * 2,  // Random rotation direction
+      velocityY: -2 - Math.random() * 3,    // Initial upward velocity
+      velocityX: (Math.random() - 0.5) * 4  // Random horizontal velocity
+    }
+    this.animatingTiles.push(tile)
+    this.startAnimationLoop()
+
+    this.notifyTilesChanged()
     return this.tiles.length > 0
   }
 
   clear() {
+    // Animate all tiles out with staggered timing
+    const tilesToAnimate = [...this.tiles]
     this.tiles = []
-    this.render()
+
+    tilesToAnimate.forEach((tile, i) => {
+      setTimeout(() => {
+        tile.animation = {
+          progress: 0,
+          rotation: (Math.random() - 0.5) * 2,
+          velocityY: -3 - Math.random() * 4,
+          velocityX: (Math.random() - 0.5) * 6
+        }
+        this.animatingTiles.push(tile)
+        this.startAnimationLoop()
+      }, i * 15)  // Stagger by 15ms
+    })
+
     this.notifyTilesChanged()
+  }
+
+  startAnimationLoop() {
+    if (this.animationId) return
+
+    const animate = () => {
+      this.updateAnimations()
+      this.render()
+
+      if (this.animatingTiles.length > 0) {
+        this.animationId = requestAnimationFrame(animate)
+      } else {
+        this.animationId = null
+      }
+    }
+
+    this.animationId = requestAnimationFrame(animate)
+  }
+
+  updateAnimations() {
+    const gravity = 0.3
+    const fadeSpeed = 0.03
+
+    this.animatingTiles = this.animatingTiles.filter(tile => {
+      const anim = tile.animation
+      anim.progress += fadeSpeed
+      anim.velocityY += gravity
+      tile.x += anim.velocityX
+      tile.y += anim.velocityY
+
+      return anim.progress < 1
+    })
   }
 
   notifyTilesChanged() {
@@ -177,18 +235,37 @@ export class Game {
       this.ctx.drawImage(this.currentImage, rect.x, rect.y, rect.width, rect.height)
     }
 
-    // Draw tiles
+    // Draw static tiles
     for (const tile of this.tiles) {
       this.drawJigsawTile(tile)
     }
+
+    // Draw animating tiles
+    for (const tile of this.animatingTiles) {
+      this.drawJigsawTile(tile, tile.animation)
+    }
   }
 
-  drawJigsawTile(tile) {
+  drawJigsawTile(tile, animation = null) {
     const ctx = this.ctx
     const { x, y, width, height, edges, color } = tile
     const tab = this.tabSize
 
     ctx.save()
+
+    // Apply exit animation transforms
+    if (animation) {
+      const scale = 1 - animation.progress * 0.5
+      const opacity = 1 - animation.progress
+      const rotation = animation.rotation * animation.progress * Math.PI
+
+      ctx.globalAlpha = opacity
+      ctx.translate(x + width / 2, y + height / 2)
+      ctx.rotate(rotation)
+      ctx.scale(scale, scale)
+      ctx.translate(-(x + width / 2), -(y + height / 2))
+    }
+
     ctx.beginPath()
 
     // Start at top-left
