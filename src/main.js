@@ -10,6 +10,7 @@ const btnAddUrl = document.getElementById('btn-add-url')
 const urlList = document.getElementById('url-list')
 const tileSizeButtons = document.querySelectorAll('.tile-size')
 const btnStart = document.getElementById('btn-start')
+const btnInstall = document.getElementById('btn-install')
 const btnRefresh = document.getElementById('btn-refresh')
 
 // Elements - Game
@@ -106,6 +107,32 @@ btnStart.addEventListener('click', startGame)
 
 btnRefresh.addEventListener('click', () => {
   location.reload(true)
+})
+
+// PWA Install prompt
+let deferredPrompt = null
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault()
+  deferredPrompt = e
+  btnInstall.classList.remove('hidden')
+})
+
+btnInstall.addEventListener('click', async () => {
+  if (!deferredPrompt) return
+
+  deferredPrompt.prompt()
+  const { outcome } = await deferredPrompt.userChoice
+
+  if (outcome === 'accepted') {
+    btnInstall.classList.add('hidden')
+  }
+  deferredPrompt = null
+})
+
+window.addEventListener('appinstalled', () => {
+  btnInstall.classList.add('hidden')
+  deferredPrompt = null
 })
 
 async function startGame() {

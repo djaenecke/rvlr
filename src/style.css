@@ -231,11 +231,29 @@ body {
   background: #238b7e;
 }
 
-#btn-refresh {
+#btn-install {
   width: 100%;
   max-width: 400px;
   padding: 0.75rem;
   margin-top: 2rem;
+  background: #4a4a6a;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#btn-install:active {
+  background: #5a5a7a;
+}
+
+#btn-refresh {
+  width: 100%;
+  max-width: 400px;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
   background: transparent;
   border: 1px solid #4a4a6a;
   border-radius: 8px;
